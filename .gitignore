@@ -1,0 +1,19 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+
+# Visual Studio
+.vs/
+
+# Rider / JetBrains
+.idea/
+
+# Node (frontend deps; ANPFront/.gitignore covers the rest of the Angular subtree)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
