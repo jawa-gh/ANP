@@ -6,28 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `sol` is a full-stack solution with two independent projects that are built, run, and versioned separately:
 
-- **`ANPFront/`** — Angular 21 frontend with server-side rendering (SSR). This is its own git repository (`.git` lives here, not at the solution root).
+- **`ANPFront/`** — Angular 22 frontend with server-side rendering (SSR).
 - **`ANPBack/`** — .NET 10 ASP.NET Core Web API (`ANP.API`).
+
+The whole solution is a single git repository rooted at `sol/`.
 
 Both are currently the default framework scaffolds (Angular CLI app + ASP.NET `webapi` template). There is no wiring between them yet — the frontend has no HTTP client calling the API, and the API still contains the template `WeatherForecast` model with no controllers. Expect to build out both sides.
 
 ## Frontend (`ANPFront/`)
 
-All `npm`/`ng` commands run from inside `ANPFront/`.
+All `npm`/`ng` commands run from inside `ANPFront/`. **Angular 22 requires Node `v22.22.3+`, `v24.15.0+`, or `v26.0.0+`** — older Node fails the CLI's version check.
 
 ```bash
 npm start            # ng serve — dev server at http://localhost:4200, hot reload
 npm run build        # ng build — production build to dist/
 npm run watch        # rebuild on change (development configuration)
-npm test             # ng test — runs Vitest
+npm test             # ng test — runs Vitest via the Angular builder
 npm run serve:ssr:ANPFront   # run the built SSR server (dist/ANPFront/server/server.mjs)
 ```
 
-Run a single test file with Vitest's CLI directly:
+Tests run through the `@angular/build:unit-test` builder, which supplies the Vitest globals (`describe`, `beforeEach`, etc.) and the Angular test environment. **Do not call `vitest` directly** — globals will be undefined and every suite fails with `describe is not defined`. Run a subset via the builder instead:
 
 ```bash
-npx vitest run src/app/app.spec.ts
-npx vitest run -t "test name substring"   # filter by test name
+ng test --no-watch --include src/app/app.spec.ts   # a single spec file
+ng test --no-watch --filter "^App"                  # filter by suite/test name (regex)
 ```
 
 ### Key architecture facts
@@ -35,6 +37,7 @@ npx vitest run -t "test name substring"   # filter by test name
 - **SSR is the default output**, not optional. `angular.json` sets `outputMode: "server"` with an Express SSR entry at [src/server.ts](ANPFront/src/server.ts). The build produces both a browser bundle and a Node server bundle. Server routes and their render modes are configured in [src/app/app.routes.server.ts](ANPFront/src/app/app.routes.server.ts) (currently prerendering everything). Browser-only APIs (`window`, `document`) must be guarded for the server pass.
 - **Standalone components, no NgModules.** App bootstrap and DI providers are in [src/app/app.config.ts](ANPFront/src/app/app.config.ts) (browser) and [src/app/app.config.server.ts](ANPFront/src/app/app.config.server.ts) (server). Client routes live in [src/app/app.routes.ts](ANPFront/src/app/app.routes.ts) (empty — add routes here).
 - **Signals-based** state — components use `signal()` (see [src/app/app.ts](ANPFront/src/app/app.ts)). Component selector prefix is `app`.
+- **v22 upgrade opt-outs** left by the `ng update` migration: `changeDetection: ChangeDetectionStrategy.Eager` on the root component and `withNoIncrementalHydration()` in `app.config.ts` preserve pre-v22 behavior. Remove them deliberately when adopting the new defaults (zoneless/eager CD and incremental hydration), not by accident.
 - **Styling is Tailwind CSS v4** via PostCSS (`.postcssrc.json` registers `@tailwindcss/postcss`); global stylesheet is `src/styles.css`.
 - **Formatting:** Prettier with `singleQuote: true`, `printWidth: 100`, and the Angular parser for HTML templates. Indentation is 2 spaces (`.editorconfig`). Use single quotes in TypeScript.
 
