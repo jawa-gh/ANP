@@ -1,0 +1,281 @@
+<section class="space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">New invoice</h1>
+      <p class="text-sm text-slate-500">
+        Built with Angular Signal Forms — <code class="rounded bg-slate-100 px-1">form()</code>,
+        <code class="rounded bg-slate-100 px-1">applyEach</code>,
+        <code class="rounded bg-slate-100 px-1">validateHttp</code> and
+        <code class="rounded bg-slate-100 px-1">validateTree</code>.
+      </p>
+    </div>
+    <a routerLink="/invoices" class="text-sm font-medium text-slate-600 hover:underline">
+      ← Back to list
+    </a>
+  </div>
+
+  @if (saved(); as invoice) {
+    <!-- Success state -->
+    <div class="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-6">
+      <p class="font-medium text-emerald-800">Invoice {{ invoice.number }} saved.</p>
+      <p class="text-sm text-emerald-700">
+        Server total: {{ invoice.total | currency: 'EUR' }} (subtotal
+        {{ invoice.subtotal | currency: 'EUR' }} + tax {{ invoice.taxAmount | currency: 'EUR' }}).
+      </p>
+      <div class="flex gap-2">
+        <button
+          type="button"
+          (click)="reset()"
+          class="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white"
+        >
+          Create another
+        </button>
+        <a
+          routerLink="/invoices"
+          class="rounded-md bg-white px-3 py-1.5 text-sm font-medium text-emerald-700 ring-1 ring-emerald-300"
+        >
+          View list
+        </a>
+      </div>
+    </div>
+  } @else {
+    <form (submit)="$event.preventDefault(); save()" class="space-y-6">
+      <!-- Header fields -->
+      <div class="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:grid-cols-2">
+        @let customer = invoiceForm.customerName();
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium text-slate-700">Customer</span>
+          <input
+            type="text"
+            [formField]="invoiceForm.customerName"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none"
+            [class.border-red-400]="customer.touched() && customer.invalid()"
+          />
+          @if (customer.touched() && customer.errors().length) {
+            <span class="mt-1 block text-xs text-red-600">{{ customer.errors()[0].message }}</span>
+          }
+        </label>
+
+        @let issue = invoiceForm.issueDate();
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium text-slate-700">Issue date</span>
+          <input
+            type="date"
+            [formField]="invoiceForm.issueDate"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none"
+            [class.border-red-400]="issue.touched() && issue.invalid()"
+          />
+          @if (issue.touched() && issue.errors().length) {
+            <span class="mt-1 block text-xs text-red-600">{{ issue.errors()[0].message }}</span>
+          }
+        </label>
+
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium text-slate-700">Status</span>
+          <select
+            [formField]="invoiceForm.status"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none"
+          >
+            @for (s of statuses; track s) {
+              <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </label>
+
+        @let notes = invoiceForm.notes();
+        <label class="block">
+          <span class="mb-1 block text-sm font-medium text-slate-700">
+            Notes
+            @if (notes.required()) {
+              <span class="text-red-500">*</span>
+            }
+          </span>
+          <input
+            type="text"
+            [formField]="invoiceForm.notes"
+            placeholder="Required once status is “Sent”"
+            class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none"
+            [class.border-red-400]="notes.touched() && notes.invalid()"
+          />
+          @if (notes.touched() && notes.errors().length) {
+            <span class="mt-1 block text-xs text-red-600">{{ notes.errors()[0].message }}</span>
+          }
+        </label>
+      </div>
+
+      <!-- Line items array -->
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-700">Line items</h2>
+          <button
+            type="button"
+            (click)="addLine()"
+            class="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
+          >
+            + Add line
+          </button>
+        </div>
+
+        @let itemsField = invoiceForm.lineItems();
+        @if (itemsField.touched() && itemsField.errors().length) {
+          <p class="mb-2 text-xs text-red-600">{{ itemsField.errors()[0].message }}</p>
+        }
+
+        <div class="space-y-3">
+          @for (item of invoiceForm.lineItems; track $index; let i = $index) {
+            @let code = item.productCode();
+            @let desc = item.description();
+            @let qty = item.quantity();
+            @let li = item().value();
+            <div class="grid grid-cols-12 items-start gap-2">
+              <div class="col-span-3">
+                <input
+                  type="text"
+                  [formField]="item.productCode"
+                  placeholder="ACME-001"
+                  class="w-full rounded-md border border-slate-300 px-2 py-1.5 font-mono text-sm uppercase focus:border-slate-500 focus:outline-none"
+                  [class.border-red-400]="code.touched() && code.invalid()"
+                />
+                @if (code.pending()) {
+                  <span class="mt-1 block text-xs text-slate-400">checking…</span>
+                } @else if (code.touched() && code.errors().length) {
+                  <span class="mt-1 block text-xs text-red-600">{{ code.errors()[0].message }}</span>
+                }
+              </div>
+
+              <div class="col-span-4">
+                <input
+                  type="text"
+                  [formField]="item.description"
+                  placeholder="Description"
+                  class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+                  [class.border-red-400]="desc.touched() && desc.invalid()"
+                />
+              </div>
+
+              <div class="col-span-1">
+                <input
+                  type="number"
+                  [formField]="item.quantity"
+                  class="w-full rounded-md border border-slate-300 px-2 py-1.5 text-right text-sm tabular-nums focus:border-slate-500 focus:outline-none"
+                  [class.border-red-400]="qty.touched() && qty.invalid()"
+                />
+              </div>
+
+              <div class="col-span-2">
+                <app-money-input [formField]="item.unitPrice" />
+              </div>
+
+              <div class="col-span-1 py-1.5 text-right text-sm font-medium tabular-nums">
+                {{ (li.quantity || 0) * (li.unitPrice || 0) | currency: 'EUR' }}
+              </div>
+
+              <div class="col-span-1 text-right">
+                <button
+                  type="button"
+                  (click)="removeLine(i)"
+                  aria-label="Remove line"
+                  class="rounded-md px-2 py-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Tax + totals -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="rounded-lg border border-slate-200 bg-white p-5">
+          <h2 class="mb-3 text-sm font-semibold text-slate-700">Tax</h2>
+          <p class="mb-2 text-xs text-slate-500">
+            Preset drives a <code class="rounded bg-slate-100 px-1">linkedSignal</code> — pick one,
+            or type a custom rate to override it.
+          </p>
+          <div class="flex flex-wrap items-center gap-2">
+            @for (preset of ['none', 'reduced', 'standard']; track preset) {
+              <button
+                type="button"
+                (click)="taxPreset.set($any(preset))"
+                class="rounded-full px-3 py-1 text-sm font-medium transition"
+                [class]="
+                  taxPreset() === preset
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100'
+                "
+              >
+                {{ preset }}
+              </button>
+            }
+            <label class="ml-auto flex items-center gap-1 text-sm text-slate-600">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                [value]="taxRate() * 100"
+                (input)="setTaxPercent($event)"
+                class="w-16 rounded-md border border-slate-300 px-2 py-1 text-right tabular-nums focus:border-slate-500 focus:outline-none"
+              />
+              %
+            </label>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 bg-white p-5 text-sm">
+          <div class="flex justify-between py-1">
+            <span class="text-slate-500">Subtotal</span>
+            <span class="font-medium tabular-nums">{{ subtotal() | currency: 'EUR' }}</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-slate-500">Tax ({{ taxRate() | percent: '1.0-2' }})</span>
+            <span class="font-medium tabular-nums">{{ taxAmount() | currency: 'EUR' }}</span>
+          </div>
+          <div class="mt-1 flex justify-between border-t border-slate-200 py-2 text-base">
+            <span class="font-semibold">Total</span>
+            <span class="font-semibold tabular-nums">{{ total() | currency: 'EUR' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tree-level (cross-field) errors -->
+      @for (error of invoiceForm().errors(); track error.kind) {
+        @if (error.kind === 'creditLimit') {
+          <p class="rounded-md border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            {{ error.message }}
+          </p>
+        }
+      }
+
+      @if (serverError()) {
+        <p class="rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700">
+          {{ serverError() }}
+        </p>
+      }
+
+      <!-- Submit + live form state -->
+      <div class="flex items-center gap-4">
+        <button
+          type="submit"
+          [disabled]="invoiceForm().submitting()"
+          class="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+        >
+          {{ invoiceForm().submitting() ? 'Saving…' : 'Save invoice' }}
+        </button>
+
+        <div class="flex flex-wrap gap-1.5 text-xs">
+          <span class="rounded-full px-2 py-0.5 ring-1 ring-slate-200" [class]="stateClass(invoiceForm().valid())">
+            {{ invoiceForm().valid() ? 'valid' : 'invalid' }}
+          </span>
+          @if (invoiceForm().pending()) {
+            <span class="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">validating…</span>
+          }
+          @if (invoiceForm().dirty()) {
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">dirty</span>
+          }
+        </div>
+      </div>
+    </form>
+  }
+</section>
