@@ -39,18 +39,22 @@
       </div>
     </div>
   } @else {
-    <form (submit)="$event.preventDefault(); save()" class="space-y-6">
+    <!-- bind the save method to the form's submit event -->
+    <form (submit)="save($event)" class="space-y-6">
       <!-- Header fields -->
       <div class="grid grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:grid-cols-2">
         @let customer = invoiceForm.customerName();
         <label class="block">
           <span class="mb-1 block text-sm font-medium text-slate-700">Customer</span>
+          <!-- bind the input to the form field; add the [formField] directive to connect this input to the customerName field in the form model -->
           <input
             type="text"
-            [formField]="invoiceForm.customerName"
+            [formField]="invoiceForm.customerName" 
             class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-slate-500 focus:outline-none"
             [class.border-red-400]="customer.touched() && customer.invalid()"
           />
+          <!-- access field state with validation signals: if the field is both invalid/has errors and touched, then show errors -->
+          <!-- The invalid() method returns true when validation fails, touched() returns true after the user has interacted with the field, and errors() provides an array of validation errors with their custom messages. -->
           @if (customer.touched() && customer.errors().length) {
             <span class="mt-1 block text-xs text-red-600">{{ customer.errors()[0].message }}</span>
           }
@@ -126,6 +130,10 @@
             @let code = item.productCode();
             @let desc = item.description();
             @let qty = item.quantity();
+
+            <!-- Access the field state by calling the field as a function.
+            This returns a FieldState object containing reactive signals for the field's value, validation status, and interaction state.
+            To read the field's current value, access the value() signal -->
             @let li = item().value();
             <div class="grid grid-cols-12 items-start gap-2">
               <div class="col-span-3">
@@ -258,7 +266,7 @@
       <div class="flex items-center gap-4">
         <button
           type="submit"
-          [disabled]="invoiceForm().submitting()"
+          [disabled]="invoiceForm().submitting() || invoiceForm().invalid()"
           class="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
         >
           {{ invoiceForm().submitting() ? 'Saving…' : 'Save invoice' }}

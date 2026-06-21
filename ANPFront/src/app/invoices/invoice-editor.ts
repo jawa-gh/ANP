@@ -45,13 +45,10 @@ export class InvoiceEditor {
   protected readonly statuses = INVOICE_STATUSES;
   protected readonly creditLimit = CREDIT_LIMIT;
 
-  /** The model signal is the form's single source of truth. */
+  // create the form model signal with inital/empty values
   protected readonly model = signal(emptyInvoiceForm());
 
-  /**
-   * The Signal Form. The schema function binds validation + async + cross-field
-   * logic declaratively to paths within the model.
-   */
+  // create the form by passing the previous created model signal to the form() function, along with a validation function that defines all the validation rules for the form fields (including cross-field and async rules)
   protected readonly invoiceForm = form(this.model, (path) => {
     required(path.customerName, { message: 'Customer name is required' });
     minLength(path.customerName, 2, { message: 'At least 2 characters' });
@@ -73,7 +70,7 @@ export class InvoiceEditor {
       min(item.quantity, 1, { message: 'Min 1' });
       min(item.unitPrice, 0, { message: 'Must be ≥ 0' });
 
-      // Async validation against the API: 200 => code exists, 404 => unknown.
+      // Signal Form Async validation against the API: 200 => code exists, 404 => unknown.
       validateHttp(item.productCode, {
         request: ({ value }) => {
           const code = value().trim();
@@ -129,8 +126,12 @@ export class InvoiceEditor {
     }));
   }
 
-  protected async save(): Promise<void> {
+  protected async save(event: Event): Promise<void> {
+    event.preventDefault();
+    
     this.serverError.set(null);
+
+    // The submit() function only runs your async callback if the form is valid. It also handles the form's submission state automatically.
     await submit(this.invoiceForm, {
       action: async (f) => {
         const payload = { ...f().value(), taxRate: this.taxRate() };
