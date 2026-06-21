@@ -9,8 +9,6 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// Connection string lives in user secrets (dev) / environment (prod), not appsettings.
-// dotnet user-secrets set "ConnectionStrings:Default" "Host=...;Database=anpdb;Username=...;Password=..."
 var connectionString =
     builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException(
@@ -40,7 +38,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 
-    // Demo convenience: create the schema and seed sample data on startup.
+    // Demo: create the schema and seed sample data on startup.
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();

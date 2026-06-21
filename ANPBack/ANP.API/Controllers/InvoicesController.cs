@@ -10,13 +10,16 @@ namespace ANP.API.Controllers;
 [Route("api/[controller]")]
 public class InvoicesController(AppDbContext db) : ControllerBase
 {
-    // GET /api/invoices?status=Draft
+    /// <summary>
+    /// Gets a list of all invoices, optionally filtered by status.
+    /// </summary>
+    /// <param name="status">[Optional] The status to filter by.</param>
+    /// <example>GET /api/invoices?status=Pending</example>
+    /// <returns>A list of invoice summaries.</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<InvoiceSummaryDto>>> GetAll(
-        [FromQuery] InvoiceStatus? status
-    )
+    public async Task<ActionResult<IEnumerable<InvoiceSummaryDto>>> GetAll([FromQuery] InvoiceStatus? status)
     {
-        var query = db.Invoices.Include(i => i.LineItems).AsQueryable();
+        var query = db.Invoices.Include(i => i.LineItems).AsNoTracking().AsQueryable();
         if (status is not null)
         {
             query = query.Where(i => i.Status == status);
@@ -26,18 +29,29 @@ public class InvoicesController(AppDbContext db) : ControllerBase
         return invoices.Select(i => i.ToSummaryDto()).ToList();
     }
 
-    // GET /api/invoices/5
+    /// <summary>
+    /// Gets a single invoice by ID.
+    /// </summary>
+    /// <example>GET /api/invoices/5</example>
+    /// <param name="id">The ID of the invoice to retrieve.</param>
+    /// <returns>The invoice data or a not-found response.</returns>
     [HttpGet("{id:int}")]
     public async Task<ActionResult<InvoiceReadDto>> GetById(int id)
     {
         var invoice = await db
             .Invoices.Include(i => i.LineItems)
+            .AsNoTracking()
             .FirstOrDefaultAsync(i => i.Id == id);
 
         return invoice is null ? NotFound() : invoice.ToReadDto();
     }
 
-    // POST /api/invoices
+    /// <summary>
+    /// Creates a new invoice.
+    /// </summary>
+    /// <example>POST /api/invoices</example>
+    /// <param name="dto">The data for the new invoice.</param>
+    /// <returns>The created invoice data.</returns>
     [HttpPost]
     public async Task<ActionResult<InvoiceReadDto>> Create(InvoiceWriteDto dto)
     {
@@ -58,7 +72,13 @@ public class InvoicesController(AppDbContext db) : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = invoice.Id }, invoice.ToReadDto());
     }
 
-    // PUT /api/invoices/5
+    /// <summary>
+    /// Updates an existing invoice.
+    /// </summary>
+    /// <example>PUT /api/invoices/5</example>
+    /// <param name="id">The ID of the invoice to update.</param>
+    /// <param name="dto">The updated invoice data.</param>
+    /// <returns>The updated invoice data or a not-found response.</returns>
     [HttpPut("{id:int}")]
     public async Task<ActionResult<InvoiceReadDto>> Update(int id, InvoiceWriteDto dto)
     {
@@ -77,7 +97,6 @@ public class InvoicesController(AppDbContext db) : ControllerBase
         invoice.TaxRate = dto.TaxRate;
         invoice.Notes = dto.Notes;
 
-        // Replace the line-item collection wholesale — simplest correct strategy for a demo.
         invoice.LineItems.Clear();
         invoice.LineItems.AddRange(dto.LineItems.Select(l => l.ToEntity()));
 
@@ -85,7 +104,12 @@ public class InvoicesController(AppDbContext db) : ControllerBase
         return invoice.ToReadDto();
     }
 
-    // DELETE /api/invoices/5
+    /// <summary>
+    /// Deletes an existing invoice.
+    /// </summary>
+    /// <example>DELETE /api/invoices/5</example>
+    /// <param name="id">The ID of the invoice to delete.</param>
+    /// <returns>A no-content response or a not-found response.</returns>
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
@@ -100,10 +124,14 @@ public class InvoicesController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    #region Private Helpers
+
     private async Task<string> NextInvoiceNumber()
     {
         var year = DateTime.UtcNow.Year;
         var count = await db.Invoices.CountAsync();
         return $"INV-{year}-{count + 1:D4}";
     }
+
+    #endregion Private Helpers
 }

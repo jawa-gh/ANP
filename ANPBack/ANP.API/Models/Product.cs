@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ANP.API.Models;
 
 /// <summary>
@@ -6,7 +8,10 @@ namespace ANP.API.Models;
 /// </summary>
 public class Product
 {
-    public string Code { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public decimal DefaultPrice { get; set; }
+    [Key]
+    public required string Code { get; set; }
+
+    public required string Name { get; set; }
+
+    public required decimal DefaultPrice { get; set; }
 }

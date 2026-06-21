@@ -9,19 +9,24 @@ namespace ANP.API.Controllers;
 [Route("api/[controller]")]
 public class ProductsController(AppDbContext db) : ControllerBase
 {
-    // GET /api/products
+    /// <summary>
+    /// Gets all products, ordered by code.
+    /// </summary>
+    /// <returns>A list of products.</returns>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Product>>> GetAll() =>
-        await db.Products.OrderBy(p => p.Code).ToListAsync();
+        await db.Products.OrderBy(p => p.Code).AsNoTracking().ToListAsync();
 
-    // GET /api/products/ACME-001
-    // Used by the Angular `validateHttp` async validator: 200 => valid code, 404 => unknown.
+    /// <summary>
+    /// Gets a product by its code.
+    /// </summary>
+    /// <param name="code">The code of the product to retrieve.</param>
+    /// <returns>The product data or a not-found response.</returns>
     [HttpGet("{code}")]
     public async Task<ActionResult<Product>> GetByCode(string code)
     {
-        var product = await db.Products.FirstOrDefaultAsync(p =>
-            p.Code.ToLower() == code.ToLower()
-        );
+        var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Code.ToLower() == code.ToLower());
+
         return product is null ? NotFound() : product;
     }
 }

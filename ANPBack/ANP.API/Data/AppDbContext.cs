@@ -11,8 +11,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Product>().HasKey(p => p.Code);
-
         modelBuilder.Entity<Product>().Property(p => p.DefaultPrice).HasPrecision(18, 2);
         modelBuilder.Entity<Invoice>().Property(i => i.TaxRate).HasPrecision(5, 4);
         modelBuilder.Entity<LineItem>().Property(l => l.UnitPrice).HasPrecision(18, 2);
@@ -20,7 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder
             .Entity<Invoice>()
             .HasMany(i => i.LineItems)
-            .WithOne(l => l.Invoice!)
+            .WithOne(l => l.Invoice)
             .HasForeignKey(l => l.InvoiceId)
             .OnDelete(DeleteBehavior.Cascade);
 

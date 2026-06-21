@@ -1,6 +1,65 @@
 @ANP.API_HostAddress = http://localhost:5250
+@api = {{ANP.API_HostAddress}}/api
 
-GET {{ANP.API_HostAddress}}/weatherforecast/
+### Products: list the catalog
+GET {{api}}/products
 Accept: application/json
 
-###
+### Products: look up a code (200) — used by the frontend validateHttp validator
+GET {{api}}/products/ACME-001
+Accept: application/json
+
+### Products: unknown code (404)
+GET {{api}}/products/NOPE-999
+Accept: application/json
+
+### Invoices: list all
+GET {{api}}/invoices
+Accept: application/json
+
+### Invoices: list filtered by status (Draft | Sent | Paid)
+GET {{api}}/invoices?status=Sent
+Accept: application/json
+
+### Invoices: get one by id
+GET {{api}}/invoices/1
+Accept: application/json
+
+### Invoices: create (named request so the id can be reused below)
+# @name createInvoice
+POST {{api}}/invoices
+Content-Type: application/json
+
+{
+  "customerName": "Initech LLC",
+  "issueDate": "2026-06-21",
+  "status": "Draft",
+  "taxRate": 0.20,
+  "notes": "Net 30.",
+  "lineItems": [
+    { "productCode": "ACME-001", "description": "Widget", "quantity": 10, "unitPrice": 19.99 },
+    { "productCode": "SVC-HOUR", "description": "Consulting (hour)", "quantity": 4, "unitPrice": 120.00 }
+  ]
+}
+
+### Invoices: update the invoice just created (reuses its id from the response above)
+PUT {{api}}/invoices/{{createInvoice.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "customerName": "Initech LLC",
+  "issueDate": "2026-06-21",
+  "status": "Sent",
+  "taxRate": 0.10,
+  "notes": "Sent to customer.",
+  "lineItems": [
+    { "productCode": "ACME-002", "description": "Gadget", "quantity": 2, "unitPrice": 49.50 }
+  ]
+}
+
+### Invoices: delete the invoice just created
+DELETE {{api}}/invoices/{{createInvoice.response.body.$.id}}
+
+### OpenAPI document (Development only)
+GET {{ANP.API_HostAddress}}/openapi/v1.json
+Accept: application/json
