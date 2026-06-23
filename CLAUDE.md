@@ -77,6 +77,7 @@ A full-stack invoice builder that showcases Angular v22 primitives end to end.
   - [invoice-editor.ts](ANPFront/src/app/invoices/invoice-editor.ts) — **Signal Forms**: `form(model, schema)` with `applyEach` (line-item array), sync validators (`required`/`min`/`minLength`), conditional `required` via `when`, `validateHttp` (async product-code check), and `validateTree` (cross-field credit-limit rule). Tax uses `linkedSignal` (preset-driven, user-overridable); totals are `computed`; saving goes through `submit()`.
   - [money-input.ts](ANPFront/src/app/invoices/money-input.ts) — a custom control implementing `FormValueControl<number>` with `model()` + `transformedValue()` (string UI ⇄ numeric model with parse errors).
   - [invoice.api.ts](ANPFront/src/app/invoices/invoice.api.ts) — `HttpClient` wrapper + the `API_BASE` injection token (defaults to `http://localhost:5250/api`).
+  - [invoice.models.ts](ANPFront/src/app/invoices/invoice.models.ts) — shared TS types, each annotated as the mirror of a backend DTO (`InvoiceForm`↔`InvoiceWriteDto`, `InvoiceRead`↔`InvoiceReadDto`, `InvoiceSummary`↔`InvoiceSummaryDto`, `LineItem`↔`LineItemDto`), plus the `InvoiceStatus` union + `INVOICE_STATUSES` constant and the `emptyLineItem()`/`emptyInvoiceForm()` factories. Keep these in sync when you change the API DTOs.
 
 ### Signal Forms gotchas (v22, experimental — `@angular/forms/signals`)
 
