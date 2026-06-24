@@ -1,4 +1,4 @@
-import { Injectable, InjectionToken, inject } from '@angular/core';
+import { Injectable, InjectionToken, Service, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { InvoiceForm, InvoiceRead } from './invoice.models';
 
@@ -11,7 +11,23 @@ export const API_BASE = new InjectionToken<string>('API_BASE', {
   factory: () => 'http://localhost:5250/api',
 });
 
-@Injectable({ providedIn: 'root' })
+// The old way
+// @Injectable({ providedIn: 'root' })
+// export class InvoiceApi {
+//   private readonly http = inject(HttpClient);
+//   readonly base = inject(API_BASE);
+
+//   create(payload: InvoiceForm) {
+//     return this.http.post<InvoiceRead>(`${this.base}/invoices`, payload);
+//   }
+
+//   update(id: number, payload: InvoiceForm) {
+//     return this.http.put<InvoiceRead>(`${this.base}/invoices/${id}`, payload);
+//   }
+// }
+
+// The new way
+@Service()
 export class InvoiceApi {
   private readonly http = inject(HttpClient);
   readonly base = inject(API_BASE);
