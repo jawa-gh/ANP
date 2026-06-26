@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  injectAsync,
   linkedSignal,
   signal,
 } from '@angular/core';
@@ -23,7 +24,10 @@ import {
 import { InvoiceApi, API_BASE } from './invoice.api';
 import {
   INVOICE_STATUSES,
+  InvoiceForm,
   InvoiceRead,
+  InvoiceStatus,
+  LineItem,
   emptyInvoiceForm,
   emptyLineItem,
 } from './invoice.models';
@@ -40,7 +44,10 @@ const CREDIT_LIMIT = 50_000;
   templateUrl: './invoice-editor.html',
 })
 export class InvoiceEditor {
-  private readonly api = inject(InvoiceApi);
+  // private readonly api = inject(InvoiceApi);
+
+  private readonly invoiceApi = injectAsync(() => import('./invoice.api').then((m) => m.InvoiceApi));
+
   protected readonly base = inject(API_BASE);
   protected readonly statuses = INVOICE_STATUSES;
   protected readonly creditLimit = CREDIT_LIMIT;
@@ -136,7 +143,8 @@ export class InvoiceEditor {
       action: async (f) => {
         const payload = { ...f().value(), taxRate: this.taxRate() };
         try {
-          const result = await firstValueFrom(this.api.create(payload));
+          const api = await this.invoiceApi();
+          const result = await firstValueFrom(api.create(payload));
           this.saved.set(result);
         } catch {
           this.serverError.set('Could not save — is the API running?');
