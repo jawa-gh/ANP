@@ -37,9 +37,37 @@ ng test --no-watch --filter "^App"                  # filter by suite/test name 
 - **SSR is the default output**, not optional. `angular.json` sets `outputMode: "server"` with an Express SSR entry at [src/server.ts](ANPFront/src/server.ts). The build produces both a browser bundle and a Node server bundle. Render modes are per-route in [src/app/app.routes.server.ts](ANPFront/src/app/app.routes.server.ts): static routes are **prerendered** (`**`), but the API-backed invoice routes are forced to **`RenderMode.Client`** so prerendering doesn't try to reach the backend at build time. Add data-driven routes the same way. Browser-only APIs (`window`, `document`) must be guarded for the server pass.
 - **Standalone components, no NgModules.** App bootstrap and DI providers are in [src/app/app.config.ts](ANPFront/src/app/app.config.ts) (browser) and [src/app/app.config.server.ts](ANPFront/src/app/app.config.server.ts) (server). `provideHttpClient(withFetch())` is registered there. Routes are in [src/app/app.routes.ts](ANPFront/src/app/app.routes.ts) (`/invoices` list + `/invoices/new` editor, lazy-loaded).
 - **Signals-based** state — components use `signal()`, `computed()`, `linkedSignal()`, and `httpResource()` (see the invoice module). Component selector prefix is `app`. Components default to `ChangeDetectionStrategy.OnPush` except the root (which is `Eager`, see below).
-- **v22 upgrade opt-outs** left by the `ng update` migration: `changeDetection: ChangeDetectionStrategy.Eager` on the root component and `withNoIncrementalHydration()` in `app.config.ts` preserve pre-v22 behavior. Remove them deliberately when adopting the new defaults (zoneless/eager CD and incremental hydration), not by accident.
+- **v22 upgrade opt-outs** left by the `ng update` migration: `changeDetection: ChangeDetectionStrategy.Eager` on the root component (see [Change detection](#change-detection-v22-default-is-onpush) below) and `withNoIncrementalHydration()` in `app.config.ts` preserve pre-v22 behavior. Remove them deliberately when adopting the new defaults (OnPush change detection and incremental hydration), not by accident.
 - **Styling is Tailwind CSS v4** via PostCSS (`.postcssrc.json` registers `@tailwindcss/postcss`); global stylesheet is `src/styles.css`.
 - **Formatting:** Prettier with `singleQuote: true`, `printWidth: 100`, and the Angular parser for HTML templates. Indentation is 2 spaces (`.editorconfig`). Use single quotes in TypeScript.
+
+### Change detection (v22 default is OnPush)
+
+In v22 the `ChangeDetectionStrategy` enum is `OnPush = 0`, `Eager = 1`, `Default = 1` — so:
+
+- **Omitting `changeDetection` gives you `OnPush`.** The enum's own doc comment says *"OnPush is enabled by default."* The invoice components set `OnPush` explicitly, which is now redundant but harmless.
+- **`Eager` is the old always-check behavior** (formerly `CheckAlways`). `Default` still exists but is a **deprecated alias of `Eager`** — don't use it. The root `App` carries `ChangeDetectionStrategy.Eager` only because the `ng update` migration added it to preserve pre-v22 behavior; new components should just omit the option.
+- **The app is zoneless** (no `zone.js`, no `polyfills`, no `provideZoneChangeDetection`). A view refreshes when a **signal read in its template changes**, a **template event** fires, an **input changes**, or `markForCheck()` is called — *not* on arbitrary async. Practically: **mutating a plain field does not refresh the view; use signals.** This is why the invoice module is signal-driven.
+
+```ts
+// v22: omit `changeDetection` → OnPush by default. Signals refresh the view.
+@Component({ selector: 'app-counter', template: `{{ count() }}` })
+export class Counter {
+  count = signal(0);
+  plain = 0;
+  inc() {
+    this.count.update((c) => c + 1); // ✅ view updates
+    this.plain++;                    // ❌ ignored by CD on its own
+  }
+}
+
+// Pre-v22 always-check behavior is now opt-in (what the migration put on the root App):
+@Component({
+  selector: 'app-root',
+  changeDetection: ChangeDetectionStrategy.Eager, // = old Default / CheckAlways
+})
+export class App {}
+```
 
 ## Backend (`ANPBack/`)
 

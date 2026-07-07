@@ -54,6 +54,11 @@ The app calls the API at `http://localhost:5250/api` (the `API_BASE` injection t
 [`invoice.api.ts`](ANPFront/src/app/invoices/invoice.api.ts)). CORS for the dev origins is already
 configured in the API.
 
+> **Change detection:** the app is zoneless and, in Angular 22, `ChangeDetectionStrategy.OnPush` is
+> the default — omit `changeDetection` to get it (`Eager` is the old always-check mode; `Default` is
+> a deprecated alias of `Eager`). Views refresh on signal/event/input changes, so update state via
+> signals rather than mutating plain fields. See [`CLAUDE.md`](CLAUDE.md) for details.
+
 ## The invoice module
 
 A full-stack invoice builder used as the Angular v22 feature showcase:
